@@ -1,0 +1,31 @@
+#!/usr/bin/env swift
+
+import Foundation
+
+let path = CommandLine.arguments.first!
+let url = URL(fileURLWithPath: path) // repo/.git/hooks/pre-push
+    .deletingLastPathComponent() // repo/.git/hooks
+    .deletingLastPathComponent() // repo/.git
+    .deletingLastPathComponent() // repo
+    .appendingPathComponent("Podfile") // repo/Podfile
+
+print("Podfile url: \(url)")
+
+guard let podFile = try? String(contentsOf: url) else {
+    print("Unable to read podfile from url: \(url)")
+    exit(1)
+}
+
+let containsDevPods =
+    podFile
+    .components(separatedBy: "\n")
+    .map{ $0.components(separatedBy: " ").joined() }
+    .contains{ $0.characters.first != "#" && $0.contains(":path=>") }
+
+if containsDevPods {
+    print("Cannot push - PodFile references dev pods")
+    exit(1)
+}
+
+exit(0)
+
